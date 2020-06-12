@@ -3,5 +3,8 @@ Python script for exracting log for a paricular time interval from large log fil
 
 I have divided the file into smaller buckets of equal no. of lines.
 I am using the first element as a representation of that bucket, on which I apply binary search to search for the required time interval.
-
+To use, run the following command in terminal
+```
+python script.py
+```
 Would love your feedback!
