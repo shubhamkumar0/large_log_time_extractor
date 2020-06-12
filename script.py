@@ -1,111 +1,46 @@
 import csv
 import re
 import datetime
-import time
-from itertools import islice
+import os
 
-def getIndex(startIdx,endIdx):
-    input_file = open('largefile.txt','r')
-    output_file = open('result.txt','a')
-    # line = input_file.readline()
-    line = input_file.readline()
-    while line!="":
-        if(len(line)>1):
-            dateStr= line.strip().split(",")
-            date = datetime.datetime.strptime(dateStr[0], '%Y-%m-%dT%H:%M:%SZ')
-
-            if(date > startIdx):
-                if(date > endIdx):
-                    break
-                output_file.write(dateStr[0]+'\n')
-                print date
-        line = input_file.readline()
-    output_file.close()
-    input_file.close()
-
-def getStartIndex(path,startDate):
-    i=1
-    flg=0
-    with open(path) as f:
-        line = list(islice(f, 0, 1))
-        while (line!=""):
-            try:
-                line = list(islice(f, i-1, i))
-                dateStr= line[0].strip().split(",")
-                date = datetime.datetime.strptime(dateStr[0], '%Y-%m-%dT%H:%M:%SZ')
-                if(date<startDate):
-                    i=i*2
-                elif (date>=startDate):
-                    print date
-                    #startIndex is between i/2 & i
-                    break
-            except StopIteration:
-                flg=1#startIndex is between i/2 & EOF
-                break
-        print i
-        if(flg==0):
-            left=(i+1)/2
-            right=i+1
-            mid=(left+right)/2
-            try:
-                line = list(islice(f, 3, 4))
-                dateStr= line[0].strip().split(",")
-                midDate = datetime.datetime.strptime(dateStr[0], '%Y-%m-%dT%H:%M:%SZ')
-                print midDate
-                if(midDate<startDate):
-                    right=mid
-                else:
-                    left=mid+1
-                mid=(left+right)/2
-                line = list(islice(f, mid, mid+1))
-            except StopIteration:
-                return mid
-        else:
-            idx=i/2
-            try:
-                line = list(islice(f, idx, idx+1))
-                while(line!=""):
-                    dateStr= line[0].strip().split(",")
-                    midDate = datetime.datetime.strptime(dateStr[0], '%Y-%m-%dT%H:%M:%SZ')
-                    if(midDate>startDate):
-                        return idx
-                    idx+=1
-                    line = list(islice(f, idx, idx+1))
-            except StopIteration:
-                return idx
-
+#globals
 datesCheck=[]
 idxCheck=[]
-def divideFile(inputpath):
-    lines_per_file = 200
+def divideFile(inputpath, bucket_size):
     smallfile = None
     with open(inputpath) as bigfile:
         for lineno, line in enumerate(bigfile):
-            if lineno % lines_per_file == 0:
+            if lineno % bucket_size == 0:
                 if smallfile:
                     smallfile.close()
-                small_filename = 'small_file_{}.txt'.format(lineno + lines_per_file)
+                small_filename = 'small_file_{}.txt'.format(lineno + bucket_size)
                 datesCheck.append(datetime.datetime.strptime(line.strip().split(",")[0],'%Y-%m-%dT%H:%M:%SZ'))
                 len=lineno
-                idxCheck.append(lineno + lines_per_file)
-                smallfile = open(small_filename, "w")
+                idxCheck.append(lineno + bucket_size)
+                try:
+                    smallfile = open(small_filename, "w")
+                except:
+                    print "File create error while creating smaller files"
             smallfile.write(line)
         if smallfile:
             smallfile.close()
-    return len
+    #to save space you can now safely delete the original file
+    #os.remove(inputpath)
 
 
-
-length=divideFile('result2.txt')
 start_date_entry = str(raw_input('Enter start dateTime (i.e. 2017,7,1,17,05)'))
 end_date_entry = str(raw_input('Enter end dateTime (i.e. 2017,7,1,17,05)'))
 start_date = datetime.datetime.strptime(start_date_entry, '%Y,%m,%d,%H,%M')
 end_date = datetime.datetime.strptime(end_date_entry, '%Y,%m,%d,%H,%M')
+filePath = str(raw_input('Enter file path i.e (./largefile.txt)'))
+#provide bucket size here
+bucket_size = 200
 
+divideFile(filePath, bucket_size)
+
+#binary search for start date
 left=0
 right=len(datesCheck)
-
-
 while(left<=right):
     mid=(left+right)/2
     if(datesCheck[mid]>start_date):
@@ -117,6 +52,8 @@ while(left<=right):
         left=mid
     else:
         startIndex=mid
+
+#binary search for end date
 left=0
 right=len(datesCheck)
 while(left<=right):
@@ -131,21 +68,18 @@ while(left<=right):
     else:
         endIndex=mid
 
-print "////"
-print startIndex
-print endIndex
-print "////"
-
-i=startIndex
-lines_per_file=200
-output_file = open('result.txt','a')
+#writing the results from buckets into a result file
+i = startIndex
+if os.path.exists('binarySeachResult.txt'):
+  os.remove('binarySeachResult.txt')
+output_file = open('binarySeachResult.txt','a')
 while(i<=endIndex):
-    input_file= open('small_file_{}.txt'.format((i+1)*lines_per_file),'r')
+    input_file = open('small_file_{}.txt'.format((i+1)*bucket_size),'r')
     line = input_file.readline()
     while line!="":
         dateStr= line.strip().split(",")
         date = datetime.datetime.strptime(dateStr[0], '%Y-%m-%dT%H:%M:%SZ')
-        if(date >start_date and date < end_date):
+        if(date > start_date and date < end_date):
             output_file.write(dateStr[0]+'\n')
         elif(date > end_date):
             break
@@ -153,15 +87,3 @@ while(i<=endIndex):
     input_file.close()
     i+=1
 output_file.close()
-
-
-
-
-# t0=time.time()
-# startIndex = getStartIndex("largefile.txt",start_date)
-# print startIndex
-# t1=time.time()
-
-# with open('largefile.txt') as f:
-#         line = islice(f, startIndex, endIndex)
-#         print line
