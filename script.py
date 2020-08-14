@@ -18,6 +18,8 @@ def divideFile(inputpath, bucket_size):
                 len=lineno
                 idxCheck.append(lineno + bucket_size)
                 try:
+                    if os.path.exists(small_filename):
+                        os.remove(small_filename)
                     smallfile = open(small_filename, "w")
                 except:
                     print "File create error while creating smaller files"
@@ -41,7 +43,7 @@ divideFile(filePath, bucket_size)
 #binary search for start date
 left=0
 right=len(datesCheck)
-while(left<=right):
+while(left<right):
     mid=(left+right)/2
     if(datesCheck[mid]>start_date):
         right=mid
@@ -49,14 +51,13 @@ while(left<=right):
             startIndex=mid-1
             break
     elif(datesCheck[mid]<start_date):
-        left=mid
-    else:
-        startIndex=mid
+        left=mid+1
+    startIndex=mid
 
 #binary search for end date
 left=0
 right=len(datesCheck)
-while(left<=right):
+while(left<right):
     mid=(left+right)/2
     if(datesCheck[mid]>end_date):
         right=mid
@@ -64,11 +65,11 @@ while(left<=right):
             endIndex=mid-1
             break
     elif(datesCheck[mid]<end_date):
-        left=mid
-    else:
-        endIndex=mid
+        left=mid+1
+    endIndex=mid
 
 #writing the results from buckets into a result file
+print("{}.{}".format(startIndex, endIndex))
 i = startIndex
 if os.path.exists('binarySeachResult.txt'):
   os.remove('binarySeachResult.txt')
